@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ImportRequest;
+use App\Http\Requests\ExpenseRequest;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use DB;
 use Auth;
 use App\Models\User;
 use App\Models\Expense;
 use Illuminate\Http\Request;
+use App\Helpers\ExpenseHelper;
+
 
 class ExpenseController extends Controller
 {
@@ -18,20 +22,24 @@ class ExpenseController extends Controller
      */
     public function index()
     {
+        // dd(auth()->user()->expenses);
       //get all the years from expenses table to showcase in dropdown
-      $years = Expense::selectRaw('YEAR(date) as year')
+      $years = $expenses = $data = [];
+      
+      if(auth()->user()->expenses()->count() > 0){
+          $years = Expense::selectRaw('YEAR(date) as year')
               ->distinct()
-              ->orderBy('year','DESC')
+              ->orderBy('year', 'DESC')
               ->pluck('year')
               ->toArray();
-      $expenses = Expense::whereYear('date', $years[0])->get();
 
-      $data = Expense::whereYear('date', $years[0])
-            ->select(DB::raw('MONTHNAME(date) as month'), DB::raw('SUM(amount) as total'))
-            ->groupBy('month')
-            ->pluck('total','month')->toArray();
-      $month = array_keys($data);
-      $amount = array_values($data);
+          $expenses = auth()->user()->expenses()->whereYear('date', $years[0])->get();
+
+          $expensesData = ExpenseHelper::getMonthlyExpenses($years[0]);
+
+          $month = $expensesData['months'];
+          $amount = $expensesData['amounts'];          
+      }
       return view('expenses.index',compact('years','expenses','month','amount'));
     }
 
@@ -51,18 +59,19 @@ class ExpenseController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(ExpenseRequest $request)
     {
         $expense = Expense::create([
+          'user_id' => auth()->user()->id,
           'title' => $request->title,
           'amount' => $request->amount,
           'date' => $request->date,
         ]);
 
         if($expense){
-          return response()->json(['success' => true,'message' => 'Form submitted successfully']);
-        }else{
-          return response()->json(['success' => false,'message' => 'There\'s some issue']);
+          return redirect()->back()->with('success', 'Expenses saved successfully!');
+        } else {
+            return redirect()->back()->with('error', 'There\'s some issue');
         }
     }
 
@@ -95,9 +104,21 @@ class ExpenseController extends Controller
      * @param  \App\Models\Expense  $expense
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Expense $expense)
+    public function update(ExpenseRequest $request, Expense $expense)
     {
-        //
+            $expense->update([
+                'title' => $request->title,
+                'amount' => $request->amount,
+                'date' => $request->date,
+            ]);
+  
+          if($expense){
+            return redirect()->back();
+            //json(['success' => true,'message' => 'Form submitted successfully']);
+          }else{
+            return redirect()->back();
+            //json(['success' => false,'message' => 'There\'s some issue']);
+          }
     }
 
     /**
@@ -109,24 +130,28 @@ class ExpenseController extends Controller
     public function destroy(Expense $expense)
     {
         $expense->delete();
-        return redirect()->back();
+        if($expense){
+          return redirect()->back()->with('success', 'Expenses deleted successfully!');
+        } else {
+            return redirect()->back()->with('error', 'There\'s some issue');
+        }
     }
 
     public function getExpenses(Request $request){
-      $expenses = Expense::whereYear('date', $request->year)->get();
+      $expenses = auth()->user()->expenses()->whereYear('date', $request->year)->get();
 
-      $data = Expense::whereYear('date', $request->year)
-            ->select(DB::raw('MONTHNAME(date) as month'), DB::raw('SUM(amount) as total'))
-            ->groupBy('month')
-            ->pluck('total','month')->toArray();
-      $month = array_keys($data);
-      $amount = array_values($data);
+      $expensesData = ExpenseHelper::getMonthlyExpenses($years[0]);
+
+      $month = $expensesData['months'];
+      $amount = $expensesData['amounts'];
       return response()->json(['success' => true,'table' => view('expenses.table',compact('expenses'))->render(),'chart' => view('expenses.chart')->render(),'month'=>$month,'amount'=>$amount]);
     }
 
-    public function importExpensesFromCSV(Request $request)
+    public function importExpensesFromCSV(ImportRequest $request)
     {
-        $file = $request->file('file'); // Assuming the CSV file is sent via form
+              
+        $file = $request->file('file');
+        $mime = $file->getMimeType();
 
         if ($file) {
             $reader = IOFactory::createReader('Csv');
@@ -141,6 +166,7 @@ class ExpenseController extends Controller
             foreach ($rows as $row) {
                 // Assuming the CSV columns are in the order of title, amount, date
                 $expense = new Expense();
+                $expense->user_id = auth()->user()->id;
                 $expense->title = $row[0]; // Replace with the appropriate column index
                 $expense->amount = $row[1]; // Replace with the appropriate column index
                 $expense->date = date('Y-m-d',strtotime($row[2])); // Replace with the appropriate column index

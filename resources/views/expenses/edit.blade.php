@@ -1,28 +1,31 @@
-<div class="card-body" id="addExpensesFormDiv" style="display: none">
+<div class="card-body border rounded border-primary mt-3 mb-3" id="editExpensesFormDiv{{$expense->id}}"
+    style="display: none">
     <form id="expenseForm" method="POST" method="POST" enctype="multipart/form-data"
-        action="{{route('expenses.store')}}" data-parsley-validate>
+        action="{{route('expenses.update',$expense->id)}}" data-parsley-validate>
         @csrf
-        <div class="row">
+        <input type="hidden" name="_method" value="PUT">
+        <div class=" row">
             <div class="col-md-6">
                 <label class="font-weight-bold">Title</label>
-                <input type="text" name="title" class="form-control" required data-parsley-trigger="change"
-                    data-parsley-required-message="Please enter title">
+                <input type="text" name="title" class="form-control" value="{{$expense->title}}" required
+                    data-parsley-trigger="change" data-parsley-required-message="Please enter title">
                 @error('title')
                 <div class="text-danger">{{ $message }}</div>
                 @enderror
             </div>
             <div class="col-md-6">
                 <label class="font-weight-bold">Amount</label>
-                <input type="number" name="amount" class="form-control" required data-parsley-trigger="change"
-                    data-parsley-required-message="Please enter amount" data-parsley-pattern="^\d+$">
+                <input type="text" name="amount" class="form-control" value="{{$expense->amount}}" required
+                    data-parsley-trigger="change" data-parsley-required-message="Please enter amount"
+                    data-parsley-pattern="^\d+(\.\d+)?$">
                 @error('amount')
                 <div class="text-danger">{{ $message }}</div>
                 @enderror
             </div>
             <div class="col-md-6">
                 <label class="font-weight-bold">Date</label>
-                <input type="date" name="date" class="form-control" required data-parsley-trigger="change"
-                    data-parsley-required-message="Please select date">
+                <input type="date" name="date" class="form-control" value="{{$expense->date}}" required
+                    data-parsley-trigger="change" data-parsley-required-message="Please select date">
                 @error('date')
                 <div class="text-danger">{{ $message }}</div>
                 @enderror
@@ -36,7 +39,7 @@
                 <div>
                     <!-- Buttons -->
                     <button class="btn btn-secondary mr-2" id="cancel">Cancel</button>
-                    <input type="submit" name="submit" value="Store Expense" class="btn btn-primary">
+                    <input type="submit" name="submit" value="Update Expense" class="btn btn-primary">
                 </div>
             </div>
         </div>

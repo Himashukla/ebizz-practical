@@ -26,8 +26,7 @@ Route::group(['middleware' => 'auth'], function () {
     // User needs to be authenticated to enter here.
     Route::get('/dashboard', [UserController::class,'dashboard']);
 
-    Route::get('/get-expense', [ExpenseController::class,'getExpenses'])->name('expenses.get.expense');
+    Route::get('/get-expense', [ExpenseController::class,'getExpenses'])->name('get.expenses');
     Route::post('/import-expenses', [ExpenseController::class,'importExpensesFromCSV'])->name('import.expenses'); 
     Route::resource('expenses',ExpenseController::class);
 });
-

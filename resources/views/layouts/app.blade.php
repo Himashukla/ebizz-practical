@@ -89,5 +89,12 @@
 <script src="{{asset('js/bootstrap.min.js')}}"></script>
 <script src="{{asset('js/chart.js')}}"></script>
 <script src="{{asset('js/expenses.js')}}"></script>
+<script>
+  window.setTimeout(function() {
+    $(".alert").fadeTo(500, 0).slideUp(500, function(){
+        $(this).remove();
+    });
+  }, 4000);
+</script>
 @yield('script')
 </html>
